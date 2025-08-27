@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GitHub Profile Viewer</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: auto;
+    }
+
+    #profile img {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      margin-top: 10px;
+    }
+
+    #profile {
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+
+    .info {
+      text-align: left;
+      margin-top: 10px;
+    }
+
+    .repos {
+      margin-top: 20px;
+      text-align: left;
+    }
+
+    .repo {
+      border-bottom: 1px solid #eee;
+      padding: 8px 0;
+    }
+
+    a {
+      color: #0366d6;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>GitHub Profile Viewer</h1>
+    <input type="text" id="username" placeholder="Enter GitHub Username" />
+    <button onclick="fetchProfile()">Get Profile</button>
+    <div id="profile"></div>
+  </div>
+
+  <script>
+    function fetchProfile() {
+      const username = document.getElementById('username').value.trim();
+      if (!username) {
+        alert('Enter a GitHub Username');
+        return;
+      }
+
+      document.getElementById('profile').innerHTML = '';
+
+      fetch(`https://api.github.com/users/${username}`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('User not found');
+          }
+          return response.json();
+        })
+        .then(data => {
+          displayProfile(data);
+          fetchRepos(username); 
+        })
+        .catch(err => {
+          document.getElementById('profile').innerHTML = `<p style="color:red;">${err.message}</p>`;
+        });
+    }
+
+    function displayProfile(profile) {
+      const profileElement = document.getElementById('profile');
+      profileElement.innerHTML = `
+        <img src="${profile.avatar_url}" alt="Avatar" />
+        <h2>${profile.name || profile.login}</h2>
+        <p>${profile.bio || 'No bio available'}</p>
+        <div class="info">
+          <p><strong>Username:</strong> ${profile.login}</p>
+          <p><strong>Location:</strong> ${profile.location || 'INDIA'}</p>
+          <p><strong>Blog:</strong> ${profile.blog ? `<a href="${profile.blog}" target="_blank">${profile.blog}</a>` : 'N/A'}</p>
+          <p><strong>Followers:</strong> ${profile.followers}</p>
+          <p><strong>Following:</strong> ${profile.following}</p>
+          <p><strong>Public Repos:</strong> ${profile.public_repos}</p>
+          <p><strong>Account Created:</strong> ${new Date(profile.created_at).toLocaleDateString()}</p>
+          <p><a href="${profile.html_url}" target="_blank">View on GitHub</a></p>
+        </div>
+        <div class="repos">
+          <h3>Recent Repositories:</h3>
+          <div id="repoList">Loading...</div>
+        </div>
+      `;
+    }
+
+    function fetchRepos(username) {
+      fetch(`https://api.github.com/users/${username}/repos?sort=updated&per_page=5`)
+        .then(res => res.json())
+        .then(repos => {
+          const repoList = document.getElementById('repoList');
+          repoList.innerHTML = '';
+
+          if (repos.length === 0) {
+            repoList.innerHTML = '<p>No repositories found.</p>';
+            return;
+          }
+
+          repos.forEach(repo => {
+            const repoDiv = document.createElement('div');
+            repoDiv.className = 'repo';
+            repoDiv.innerHTML = `
+              <p><a href="${repo.html_url}" target="_blank">${repo.name}</a></p>
+              <p>${repo.description || 'No description'}</p>
+              <p><small>⭐ ${repo.stargazers_count} | Forks: ${repo.forks_count}</small></p>
+            `;
+            repoList.appendChild(repoDiv);
+          });
+        })
+        .catch(err => {
+          document.getElementById('repoList').innerHTML = `<p style="color:red;">Could not load repositories</p>`;
+        });
+    }
+  </script>
+</body>
+</html>
